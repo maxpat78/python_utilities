@@ -2,31 +2,39 @@
 
 # Can synchronize current Unix time (UTC) with a NTP pool
 
-# Given an 80-bit base32 encoded secret key on command line,
+# Given a base32 encoded secret key on command line,
 # it displays current TOTP and expiration time
 import sys, struct, time, base64
 from hashlib import sha1, sha256, sha512
 from socket import socket, AF_INET, SOCK_DGRAM
 
-
 class NTPclock:
-    "Reads current time from a NTP server to provide adjusted Unix time"
+    "Adjust local Unix time synchronizing with a NTP server"
     def __init__ (p):
+        UNIX_NTP_OFFSET = 2208988800 # NTP time is s since 1/1/1900, Unix since 1/1/1970
         client = socket(AF_INET, SOCK_DGRAM) # Internet, UDP
+        client.settimeout(5)
         address = ("pool.ntp.org", 123) # NTP server & port
         data = bytearray(48); data[0] = 27 # hex message to send to the server (NTPv3)
         client.sendto(data, address)
-        T = int(time.time())
-        data, address = client.recvfrom(48)
-        t = struct.unpack("!12I", data)[10] # unpack the binary data and get the seconds out
-        t -= 2208988800 # convert from NTP (1/1/1900 <- s) to Unix (1/1/1970 <- s) timestamp
-        if t < 0:
-            t = T # backup function
-            print('WARNING: bad time from NTP, using internal time')
-        p.delta = t-T
-        if p.delta: print('WARNING: internal and NTP times differ by %d second(s)' % p.delta)
+        T1 = time.time() + UNIX_NTP_OFFSET # when data left from client (NTP time)
+        try:
+            data, address = client.recvfrom(48)
+            T4 = time.time() + UNIX_NTP_OFFSET # when data came back from server
+            A = struct.unpack("!3Bb11I", data)
+            T2 = A[11] + float(A[12]) / (1<<32) # when data arrived at server
+            T3 = A[13] + float(A[14]) / (1<<32) # when data left from server
+            p.offset = ((T2-T1)+(T3-T4)) / 2
+            print('INFO: calculated clock offset is %f second(s)' % p.offset)
+            # Offset can increase with suspension etc.
+            # On Windows, use "w32tm /resync" as Admin to resync clock
+        except:
+            print('WARNING: could not reach NTP server')
+            p.offset = 0
     
-    def time(p): return time.time() - p.delta
+    def time(p):
+        "Adjusted Unix time"
+        return time.time() + p.offset
 
 clock = NTPclock()
 
@@ -101,7 +109,7 @@ def ValidateTOTP(totp, k, TI=30, I=1, d=6):
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print('Syntax: myOTP.py BASE32_KEY') # expects an 80-bit key, base32 encoded
+        print('Syntax: myOTP.py BASE32_KEY') # expects a "shared secret" (=key, typically 80-bit), base32 encoded
         sys.exit(1)
     k = base64.b32decode(sys.argv[1])
     totp, s = TOTPT(k)
