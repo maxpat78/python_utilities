@@ -10,27 +10,32 @@ from socket import socket, AF_INET, SOCK_DGRAM
 
 class NTPclock:
     "Adjust local Unix time synchronizing with a NTP server"
+    # Offset can increase with suspension etc.
+    # On Windows, use "w32tm /resync" as Admin to resync clock
     def __init__ (p):
         UNIX_NTP_OFFSET = 2208988800 # NTP time is s since 1/1/1900, Unix since 1/1/1970
         client = socket(AF_INET, SOCK_DGRAM) # Internet, UDP
-        client.settimeout(5)
-        address = ("pool.ntp.org", 123) # NTP server & port
-        data = bytearray(48); data[0] = 27 # hex message to send to the server (NTPv3)
-        client.sendto(data, address)
-        T1 = time.time() + UNIX_NTP_OFFSET # when data left from client (NTP time)
-        try:
-            data, address = client.recvfrom(48)
-            T4 = time.time() + UNIX_NTP_OFFSET # when data came back from server
-            A = struct.unpack("!3Bb11I", data)
-            T2 = A[11] + float(A[12]) / (1<<32) # when data arrived at server
-            T3 = A[13] + float(A[14]) / (1<<32) # when data left from server
-            p.offset = ((T2-T1)+(T3-T4)) / 2
-            print('INFO: calculated clock offset is %f second(s)' % p.offset)
-            # Offset can increase with suspension etc.
-            # On Windows, use "w32tm /resync" as Admin to resync clock
-        except:
-            print('WARNING: could not reach NTP server')
-            p.offset = 0
+        client.settimeout(2)
+        ntp_servers = ("time.google.com", "it.pool.ntp.org", "time-a-g.nist.gov", "time.inrim.it", "time.facebook.com", "time.windows.com", "ntp.nict.jp", "clock.isc.org", "ntp.metas.ch")
+        ntp_queried = 0
+        mean_offset = 0
+        for addr in ntp_servers:
+            address = (addr, 123) # NTP server & port
+            data = bytearray(48); data[0] = 27 # hex message to send to the server (NTPv3)
+            client.sendto(data, address)
+            T1 = time.time() + UNIX_NTP_OFFSET # when data left from client (NTP time)
+            try:
+                data, address = client.recvfrom(48)
+                T4 = time.time() + UNIX_NTP_OFFSET # when data came back from server
+                A = struct.unpack("!3Bb11I", data)
+                T2 = A[11] + float(A[12]) / (1<<32) # when data arrived at server
+                T3 = A[13] + float(A[14]) / (1<<32) # when data left from server
+                mean_offset += ((T2-T1)+(T3-T4)) / 2
+                ntp_queried += 1
+            except:
+                print('WARNING: could not reach NTP server', addr)
+        p.offset = mean_offset / ntp_queried
+        print('INFO: calculated clock offset is %f second(s)' %  p.offset)
     
     def time(p):
         "Adjusted Unix time"
