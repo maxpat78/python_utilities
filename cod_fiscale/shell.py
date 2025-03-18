@@ -7,15 +7,14 @@ from iban import iban_validate, iban_gen_IT, bban_check_gen_IT
 from plug_banche import banche
 
 
-class CFShell(cmd.Cmd):
+class Shell(cmd.Cmd):
     intro = 'Digita help o ? per un elenco dei comandi.'
     prompt = '$ '
-    vault = None
 
     def _join(*args): return os.path.join(*args).replace('\\','/')
 
     def __init__ (p):
-        super(CFShell, p).__init__()
+        super(Shell, p).__init__()
 
     def do_quit(p, arg):
         "Esce"
@@ -31,22 +30,25 @@ class CFShell(cmd.Cmd):
             return
         print(iban)
 
-    def do_verify(p, arg):
-        "Verifica IBAN, codice fiscale o partita IVA"
-        L = arg.split()
-        if not L: L = ['BAD']
-        par = L.pop(0)
-        arg = ' '.join(L)
-        if par == '-piva':
-            p.do_viva(arg)
-        elif par == '-cf':
-            p.do_vcf(arg.upper())
-        elif par == '-iban':
-            p.do_viban(arg)
+    def do_ver(p, arg):
+        "Verifica IBAN, codice fiscale o partita IVA, deducendo il tipo di argomento"
+        if not arg:
+            print("Non è stato indicato un codice da verificare")
+            return
+        # Deduce il tipo di codice
+        if len(arg) == 11 and arg.isdigit():
+            print('Rilevato partita IVA/codice fiscale di ente')
+            Shell.viva(arg)
+        elif len(arg) == 16 and arg[:6].isalpha():
+            print('Rilevato codice fiscale di persona fisica')
+            Shell.vcf(arg.upper())
+        elif 14 < len(arg) < 33 and arg[:2].isalpha() and arg[2:4].isdigit(): # IBAN (lungh. var.)
+            print('Rilevato IBAN')
+            Shell.viban(arg)
         else:
-            print("Occorre specificare un'operazione tra -piva, -cf o -iban")
+            print('Non sembra né un IBAN né un codice fiscale/partita IVA')
 
-    def do_vcf(p, arg):
+    def vcf(arg):
         "Verifica un codice fiscale italiano di persona fisica"
         arg = arg.upper()
         c = get_ctl_chr(arg[:15])
@@ -59,7 +61,7 @@ class CFShell(cmd.Cmd):
         else:
             print('Codice fiscale NON valido')
         
-    def do_viva(p, arg):
+    def viva(arg):
         "Verifica una partita IVA italiana"
         crc = crc_piva(arg[:-1])
         if crc != arg:
@@ -72,7 +74,7 @@ class CFShell(cmd.Cmd):
             except:
                 perr()
 
-    def do_viban(p, arg):
+    def viban(arg):
         "Verifica un codice IBAN, dando ulteriori informazioni sulla filiale italiana"
         arg = arg.upper()
         arg = arg.split()
@@ -159,28 +161,16 @@ class CFShell(cmd.Cmd):
         print ("""Calcola la lettera di controllo per il Codice Fiscale indicato.
    Uso: ctl codice""")
 
-    def help_viban(p):
-        print ("""Verifica la validità formale di un IBAN.
-   Uso: viban codice_IBAN""")
-
     def help_geniban(p):
         print ("""Genera un IBAN italiano a partire dai codici ABI, CAB e dal numero di conto corrente.
    Uso: geniban ABI CAB CCN""")
 
-    def help_viva(p):
-        print ("""Convalida un numero di partita IVA/codice fiscale di ente italiano a 11 cifre.
-   Uso: viva codice_11_cifre""")
-
-    def help_vcf(p):
-        print ("""Convalida un Codice fiscale italiano di persona fisica da 16 caratteri.
-   Uso: vcf codice_fiscale_16_caratteri""")
-
-    def help_verify(p):
+    def help_ver(p):
         print ("""Verifica la validità formale di un codice fiscale, partita IVA o IBAN.
-   Uso: verify <-cf | -piva | -iban> codice""")
+   Uso: ver codice""")
 
 def perr():
     print(sys.exception())
     #~ print(traceback.format_exc())
 
-CFShell().cmdloop()
+Shell().cmdloop()
