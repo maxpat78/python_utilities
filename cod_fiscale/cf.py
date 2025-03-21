@@ -1,3 +1,4 @@
+# -*- coding: windows-1252 -*-
 "Funzioni per il calcolo del codice fiscale italiano secondo il D.M. Finanze n.13813 del 23/12/1976 e della partita IVA"
 from difflib import SequenceMatcher
 from plug_iva import uffici
@@ -38,7 +39,7 @@ def get_cod_comune(nome):
     return r[0]
 
 def get_omocodici(cf, pos=(14,13,12,10,9,7,6)):
-    "Ricava 127 omocodici sostituendo una o piu' delle 7 cifre"
+    "Ricava 127 omocodici sostituendo una o più delle 7 cifre"
     cf = cf.upper()
     if len(cf) > 15: cf = cf[:15] # ignora il codice di controllo
     OMO = []
@@ -52,7 +53,7 @@ def get_omocodici(cf, pos=(14,13,12,10,9,7,6)):
         z = ''.join(L)
         OMO+=[z+get_ctl_chr(z)]
         OMO += get_omocodici(z, pos[1:])
-    return set(OMO)
+    return sorted(list(set(OMO)))
 
 def get_cf_base(omocodice):
     "Ricava il codice fiscale base da uno dei 127 omocodici"
@@ -151,6 +152,8 @@ def get_cod_nome(nome):
 
 def get_codice_fiscale(nome, cognome, sesso, data_nascita, luogo_nascita):
     "Genera un codice fiscale formalmente valido dai dati personali [data_nascita: tuple(gg,mm,aaaa)]"
+    cognome = cognome.translate(str.maketrans('', '', " '")).upper()
+    nome = nome.translate(str.maketrans('', '', " '")).upper()
     c = get_cod_cognome(cognome)
     n = get_cod_nome(nome)
     d = get_data_di_nascita(data_nascita, {'M':0,'F':1}[sesso.upper()])
