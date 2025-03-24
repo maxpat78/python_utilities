@@ -1,5 +1,6 @@
 "Crea una tabella di codici ufficio IVA riportati da Wikipedia (alcuni mancano dall'Agenzia delle Entrate)"
 from openpyxl import load_workbook
+import json
 
 print ('Carico i codici ufficio IVA...')
 wb = load_workbook('uffici_IVA_wikipedia.xlsx')
@@ -16,8 +17,5 @@ for row in rows:
     except:
         pass
 
-f = open('plug_iva.py', 'w')
-f.write('# -*- coding: windows-1252 -*-\nuffici = ')
-f.write(str(uffici))
-f.close()
-print('Elenco degli uffici IVA generato in plug_iva.py')
+json.dump(uffici, open('uffici.json','w'))
+print('Elenco degli uffici IVA generato in uffici.json')

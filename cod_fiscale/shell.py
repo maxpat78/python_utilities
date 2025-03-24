@@ -1,11 +1,12 @@
 # -*- coding: windows-1252 -*-
-import cmd, sys, traceback
+import cmd, sys, traceback, json
 from shlex import split, join
 from datetime import date
 
 from cf import get_codice_fiscale, get_omocodici, get_ctl_chr, crc_piva, get_ufficio_iva, get_dati_cf
 from iban import iban_validate, iban_gen_IT, bban_check_gen_IT
-from plug_banche import banche
+
+banche = json.load(open('banche.json'))
 
 
 class Shell(cmd.Cmd):

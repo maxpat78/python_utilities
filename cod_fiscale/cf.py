@@ -1,8 +1,11 @@
 # -*- coding: windows-1252 -*-
 "Funzioni per il calcolo del codice fiscale italiano secondo il D.M. Finanze n.13813 del 23/12/1976 e della partita IVA"
+import json
 from difflib import SequenceMatcher
-from plug_iva import uffici
-from plug_comuni_stati import comuni
+
+uffici = json.load(open('uffici.json'))
+territori = json.load(open('territori.json'))
+
 
 def islike(a, b):
     "Testa la somiglianza tra le stringhe a e b; o tra una parola a e una parte di altra stringa b"
@@ -18,17 +21,17 @@ def get_cod_comune(nome):
     "Ricava il codice catastale di 4 caratteri corrispondente a un comune o stato estero"
     nome = nome.upper()
     r = []
-    for o in comuni:
-        if nome == comuni[o][0]: r += [o]
+    for o in territori:
+        if nome == territori[o][0]: r += [o]
     if len(r) > 1:
         print(f"ATTENZIONE: risultati multipli per '{nome}'! Usato il primo.")
-        for n in r: print(f"{n} {comuni[n][0]} ({comuni[n][1]})")
+        for n in r: print(f"{n} {territori[n][0]} ({territori[n][1]})")
         return r[0]
     if not r:
         print(f"Nessun Comune o Stato Estero '{nome}'")
         print(f"Nomi simili:")
-        for o in comuni:
-            simile = comuni[o][0]
+        for o in territori:
+            simile = territori[o][0]
             if nome in simile or islike(nome, simile):
                 r += [o]
                 print(simile)
@@ -96,7 +99,7 @@ def get_dati_cf(cf):
         gg-=40
     else:
         sesso = 'M'
-    return sesso, comuni[cod], (gg, 'ABCDEHLMPRST'.index(mm)+1, aa)
+    return sesso, territori[cod], (gg, 'ABCDEHLMPRST'.index(mm)+1, aa)
 
 def get_data_di_nascita(data, F=0):
     "Ricava 5 caratteri da data di nascita (gg,mm,aaaa) e sesso"
