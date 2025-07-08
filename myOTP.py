@@ -59,15 +59,16 @@ def HMAC(k, m, h):
     return d.digest()
 
 
-def HOTP(k, c, d=6, h=sha1):
+def HOTP(k, c, d=6, h='sha1'):
     """Get 'd' digits from the HMAC-based One Time Password for key 'k' and
     counter 'c', using hash 'h'. See RFC 4226"""
-    if h not in (sha1, sha256, sha512):
+    if h not in ('sha1', 'sha256', 'sha512'):
         raise BaseException("HOTP hash must be one of SHA-1 (default), SHA-256 or SHA-512!")
     if not (5 < d < 11):
         raise BaseException("HOTP must be from 6 to 10 decimal digits long!")
     if c < 0:
         raise BaseException("HOTP counter can't be negative!")
+    h=globals()[h]
     # 1. Make counter 'c' a BE QWORD
     b = bytearray(8)
     struct.pack_into('>Q', b, 0, c)
@@ -82,23 +83,23 @@ def HOTP(k, c, d=6, h=sha1):
     return ('%010d'%dec)[-d:]
 
 
-def TOTP(k, TI=30, d=6, T=None):
+def TOTP(k, TI=30, d=6, h='sha1', T=None):
     """Get the Time-based One Time Password of 'd' digits for key 'k',
     deriving the counter from a 'T' Unix timestamp (default: current time)
     and a 'TI' interval (default: 30 s). See RFC 6238"""
     if T == None: T = clock.time()
     TC = int(T) // TI
-    return HOTP(k, TC, d)
+    return HOTP(k, TC, d, h)
 
 
-def TOTPT(k, TI=30, d=6, T=None):
+def TOTPT(k, TI=30, d=6, h='sha1', T=None):
     "Like TOTP, but returns a tuple with a TOTP and the seconds left before its expiration"
     if T == None: T = clock.time()
     TC = int(T) // TI
-    return HOTP(k, TC, d), TI - (int(T) - TC*TI)
+    return HOTP(k, TC, d, h), TI - (int(T) - TC*TI)
 
 
-def ValidateTOTP(totp, k, TI=30, I=1, d=6):
+def ValidateTOTP(totp, k, TI=30, I=1, d=6, h='sha1'):
     """Validate a 'totp' of 'd' digits within 'I' intervals of 'TI' seconds,
     given a 'k' key. See RFC 6238"""
     T = int(clock.time()) - TI*I
