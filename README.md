@@ -8,7 +8,7 @@ Various Python 3.x scripts and code fragments to carry on specific tasks and use
 
 `srot.py` simple ROTator cipher
 
-`myOTP.py` a pure-Python3implementation of TOTP (HOTP, HMAC) that can synchronize current Unix time (UTC) with a NTP pool
+`myOTP.py` a pure-Python3 implementation of TOTP (HOTP, HMAC) that can synchronize current Unix time (UTC) with a NTP pool
 
 `NTPClockInfo.pyw` show clock offset using myOTP
 
